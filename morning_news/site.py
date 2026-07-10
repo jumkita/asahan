@@ -34,7 +34,13 @@ def _extract_body_inner(html_text: str) -> str:
     return match.group(1).strip()
 
 
-def wrap_mobile_page(*, title: str, body_inner: str, nav_html: str = "") -> str:
+def wrap_mobile_page(
+    *,
+    title: str,
+    body_inner: str,
+    nav_html: str = "",
+    footer_html: str = "",
+) -> str:
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -43,6 +49,7 @@ def wrap_mobile_page(*, title: str, body_inner: str, nav_html: str = "") -> str:
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0b57d0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>{html.escape(title)}</title>
   <style>
     :root {{
@@ -101,6 +108,12 @@ def wrap_mobile_page(*, title: str, body_inner: str, nav_html: str = "") -> str:
       align-items: center;
     }}
     .muted {{ color: var(--muted); font-size: 14px; }}
+    .footer {{
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }}
     .history a {{
       display: block;
       padding: 14px 0;
@@ -117,6 +130,7 @@ def wrap_mobile_page(*, title: str, body_inner: str, nav_html: str = "") -> str:
     <div class="card">
       {body_inner}
     </div>
+    {footer_html}
   </div>
 </body>
 </html>
@@ -152,6 +166,12 @@ def publish_site(
         raise FileNotFoundError("公開できる朝刊アーカイブがありません")
 
     latest = days[0]
+    published_at = datetime.now(JST).strftime("%Y-%m-%d %H:%M JST")
+    footer_html = (
+        "<p class='footer'>毎日 6:30 JST に自動更新"
+        f" / 最終反映: {html.escape(published_at)}</p>"
+    )
+
     latest_src = archive_dir / f"{latest}.html"
     latest_body = _extract_body_inner(latest_src.read_text(encoding="utf-8"))
     # 元HTMLの外側ラッパを外して中身だけ使う
@@ -167,6 +187,7 @@ def publish_site(
         title=f"朝刊 {latest}",
         body_inner=latest_body,
         nav_html=build_nav(current="today"),
+        footer_html=footer_html,
     )
     (site_dir / "index.html").write_text(index_html, encoding="utf-8")
 
@@ -184,6 +205,7 @@ def publish_site(
             title=f"朝刊 {day}",
             body_inner=body,
             nav_html=build_nav(current="today" if day == latest else "history"),
+            footer_html=footer_html,
         )
         (site_dir / f"{day}.html").write_text(page, encoding="utf-8")
 
@@ -194,7 +216,7 @@ def publish_site(
         history_items.append(f"<a href='{day}.html'>{html.escape(label)}</a>")
     history_body = (
         f"<h1>朝刊履歴</h1>"
-        f"<p class='muted'>直近 {len(days)} 日分</p>"
+        f"<p class='muted'>直近 {len(days)} 日分（毎日 6:30 JST 自動更新）</p>"
         f"<div class='history'>{''.join(history_items)}</div>"
     )
     (site_dir / "history.html").write_text(
@@ -202,6 +224,7 @@ def publish_site(
             title="朝刊履歴",
             body_inner=history_body,
             nav_html=build_nav(current="history"),
+            footer_html=footer_html,
         ),
         encoding="utf-8",
     )

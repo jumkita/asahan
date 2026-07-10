@@ -39,6 +39,7 @@ jobs:
           python -m pytest -q
 
       - name: Build digest and mobile site
+        id: build
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -47,12 +48,29 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
+          set -u
           export PYTHONPATH="$PWD"
           # SMTP Secrets があるときだけメール送信。サイト公開は常に行う。
+          set +e
           if [ -n "${SMTP_USER:-}" ] && [ -n "${SMTP_PASSWORD:-}" ] && [ -n "${MAIL_TO:-}" ]; then
             python -m morning_news.digest --send
           else
             python -m morning_news.digest
+          fi
+          code=$?
+          set -e
+          echo "digest_exit=${code}" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f site/index.html ]; then
+            echo "site/index.html が生成されませんでした (exit=${code})"
+            exit 1
+          fi
+
+          # 日経0件(exit 2)でもサイトは毎日反映する。それ以外の失敗はジョブ失敗。
+          if [ "${code}" -eq 2 ]; then
+            echo "::warning::日経見出しが0件ですが、朝刊サイトは公開します"
+          elif [ "${code}" -ne 0 ]; then
+            exit "${code}"
           fi
 
       - name: Upload Pages artifact

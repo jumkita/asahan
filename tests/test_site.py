@@ -21,6 +21,8 @@ def test_publish_site_creates_index_and_history(tmp_path: Path) -> None:
     assert "今日の朝刊" in html
     assert "2099-01-02" in html
     assert "test digest" in html
+    assert "毎日 6:30 JST に自動更新" in html
+    assert "最終反映:" in html
     assert (site_dir / "history.html").exists()
     assert (site_dir / "2099-01-02.html").exists()
     assert (site_dir / ".nojekyll").exists()

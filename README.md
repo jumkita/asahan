@@ -73,7 +73,9 @@ python -m morning_news.digest --send
 
 4. Actions → **Morning News Digest** → Run workflow で手動確認
 5. 成功後、Pages の URL で朝刊を確認（ジョブの `deploy` 環境に URL が出る）
-6. スケジュール: `30 21 * * *`（UTC）= 毎日 **6:30 JST**
+6. スケジュール: `30 21 * * *`（UTC）= 毎日 **6:30 JST**（土日含む・自動）
+
+**毎日の自動反映は有効です。** Actions の `Morning News Digest` が毎朝走り、生成した `site/` を GitHub Pages にデプロイします。手動確認は Actions → Run workflow からいつでもできます。
 
 SMTP Secrets が無い場合でもサイト公開は行われます。メールはスキップされます。
 
