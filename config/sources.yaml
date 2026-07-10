@@ -1,0 +1,59 @@
+# access:
+#   free     … 公式ページも概ね無料で読める
+#   headline … 朝刊では見出し・リードのみ使う（本文は会員向けの場合あり）
+sources:
+  - id: nikkei_gnews
+    name: 日経（見出し）
+    category: nikkei
+    access: headline
+    weight: 100
+    max_items: 15
+    url: "https://news.google.com/rss/search?q=site:nikkei.com&hl=ja&gl=JP&ceid=JP:ja"
+
+  - id: nikkei_biz
+    name: 日経ビジネス（見出し）
+    category: nikkei
+    access: headline
+    weight: 90
+    max_items: 10
+    url: "https://business.nikkei.com/rss/sns/nb.rdf"
+
+  - id: yahoo_business
+    name: Yahoo!ニュース 経済
+    category: economy
+    access: free
+    weight: 80
+    max_items: 12
+    url: "https://news.yahoo.co.jp/rss/topics/business.xml"
+
+  - id: nhk_economy
+    name: NHK経済（RSS）
+    category: economy
+    access: headline
+    weight: 70
+    max_items: 8
+    url: "https://www.nhk.or.jp/rss/news/cat4.xml"
+
+  - id: yahoo_top
+    name: Yahoo!ニュース 主要
+    category: general
+    access: free
+    weight: 60
+    max_items: 12
+    url: "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
+
+  - id: mainichi_flash
+    name: 毎日新聞 速報
+    category: general
+    access: free
+    weight: 55
+    max_items: 10
+    url: "https://mainichi.jp/rss/etc/mainichi-flash.rss"
+
+  - id: nhk_main
+    name: NHK主要（RSS）
+    category: general
+    access: headline
+    weight: 40
+    max_items: 8
+    url: "https://www.nhk.or.jp/rss/news/cat0.xml"
