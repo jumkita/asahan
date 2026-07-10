@@ -97,24 +97,26 @@
 ## 8. システム構成
 
 ```text
-GitHub Actions (毎日 21:30 UTC)
+GitHub Actions (毎日 21:30 UTC = 6:30 JST)
   → Python: RSS収集 → 重複排除 → HTML/テキスト生成
-  → SMTPでメール送信
+  → site/ を生成して GitHub Pages にデプロイ（毎日自動反映）
+  → （任意）SMTPでメール送信
   → data/archive/ に当日分を保存
 ```
 
 ## 9. 受け入れ条件（Phase 1）
 
-1. 手動実行（`workflow_dispatch`）でメールが届く
+1. 手動実行（`workflow_dispatch`）で Pages が更新される（メールは任意）
 2. 日経関連セクションに1件以上ある、または失敗が明示される
 3. 件名に日付と件数が入る
 4. README に前提・Secrets・実行手順・期待結果がある
 5. 最低1つの自動テストが通る
+6. 定時スケジュール（毎日 6:30 JST）でサイトが自動更新される
 
 ## 10. フェーズ
 
 | Phase | 内容 |
 |-------|------|
-| 1（本実装） | RSS収集 + メール通知 + Actions 定時実行 |
+| 1（本実装） | RSS収集 + Pages公開 + Actions 定時実行（メール任意） |
 | 2 | ソース追加（yaml編集）／失敗通知改善 |
 | 3 | 重複統合の高度化・キーワード強調 |
