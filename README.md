@@ -2,7 +2,9 @@
 
 毎朝 6:30（JST・土日含む）に、総合ニュース（経済寄り）と**日経必須**の見出しを集め、**スマホ向け Web ページ（GitHub Pages）** に公開します。メール送信は任意です。PCを開けなくても GitHub Actions が自動実行します。
 
-詳細要件: [docs/requirements.md](docs/requirements.md)
+詳細要件: [docs/requirements.md](docs/requirements.md)  
+ココナラ商品設計: [docs/coconala-product.md](docs/coconala-product.md)  
+ココナラ出品文: [docs/coconala-listing.md](docs/coconala-listing.md)
 
 ## スマホで見る（推奨）
 

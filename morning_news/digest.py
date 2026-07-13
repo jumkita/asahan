@@ -24,6 +24,7 @@ import yaml
 from dotenv import load_dotenv
 
 from morning_news.ai_summary import enrich_with_ai_summaries
+from morning_news.priority import PRIORITY_LABEL, attach_priorities, curated_items
 from morning_news.site import publish_site
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,6 +67,9 @@ class NewsItem:
     published: str = ""
     ai_summary: str = ""
     access: str = "free"
+    priority: str = "C"
+    priority_reason: str = ""
+    priority_score: int = 0
 
 
 @dataclass
@@ -421,14 +425,33 @@ def cta_label(item: NewsItem) -> str:
     return f"無料記事を開く（{domain_label}）"
 
 
+def _priority_badge_text(item: NewsItem) -> str:
+    label = PRIORITY_LABEL.get(item.priority, item.priority)
+    return f"{item.priority}:{label}"
+
+
 def render_text_digest(items: list[NewsItem], errors: list[str], now: datetime) -> str:
+    items = attach_priorities(items)
+    picks = curated_items(items, limit=10)
     lines = [
         build_subject(now, len(items)),
         "",
         "無料で読める範囲（見出し・リード）中心です。有料本文は対象外。",
-        "気になるものだけ公式ページへ。",
+        "上部がストラテジスト視点の厳選、下部が網羅確認です。",
         "",
+        f"■ 厳選（{_priority_badge_text(picks[0]) if picks else 'A/B'}優先・最大10件）",
     ]
+    if not picks:
+        lines.append("（該当なし）")
+        lines.append("")
+    for idx, item in enumerate(picks, start=1):
+        lines.append(f"{idx}. [{_priority_badge_text(item)}] [{item.source_name}] {item.title}")
+        if item.priority_reason:
+            lines.append(f"   なぜ: {item.priority_reason}")
+        lines.append(f"   リンク: {item.link}")
+        lines.append("")
+    lines.append("■ 網羅（全件）")
+    lines.append("")
     grouped = group_by_category(items)
     for category in CATEGORY_ORDER:
         section_items = grouped.get(category) or []
@@ -456,7 +479,61 @@ def render_text_digest(items: list[NewsItem], errors: list[str], now: datetime) 
     return "\n".join(lines).strip() + "\n"
 
 
+def _priority_badge_html(item: NewsItem) -> str:
+    colors = {
+        "A": ("#b91c1c", "#fee2e2"),
+        "B": ("#b45309", "#ffedd5"),
+        "C": ("#475569", "#e2e8f0"),
+    }
+    fg, bg = colors.get(item.priority, colors["C"])
+    label = PRIORITY_LABEL.get(item.priority, item.priority)
+    return (
+        f"<span style='display:inline-block;font-size:11px;padding:2px 6px;"
+        f"border-radius:999px;background:{bg};color:{fg};margin-right:6px'>"
+        f"{html.escape(item.priority)} {html.escape(label)}</span>"
+    )
+
+
 def render_html_digest(items: list[NewsItem], errors: list[str], now: datetime) -> str:
+    items = attach_priorities(items)
+    picks = curated_items(items, limit=10)
+    curated_rows: list[str] = []
+    for item in picks:
+        body, label = display_summary(item)
+        reason = (
+            f"<p style='margin:4px 0 8px;color:#555;font-size:13px'>なぜ見るか: "
+            f"{html.escape(item.priority_reason)}</p>"
+            if item.priority_reason
+            else ""
+        )
+        summary_html = ""
+        if body:
+            summary_html = (
+                f"<p style='margin:6px 0 8px;color:#333;font-size:14px;line-height:1.55'>"
+                f"{html.escape(label)}: {html.escape(body)}</p>"
+            )
+        curated_rows.append(
+            "<li style='margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid #eee'>"
+            f"<div style='font-size:12px;color:#888;margin-bottom:4px'>"
+            f"{_priority_badge_html(item)}{html.escape(item.source_name)}</div>"
+            f"<div style='font-size:17px;font-weight:600;line-height:1.4'>{html.escape(item.title)}</div>"
+            f"{reason}{summary_html}"
+            f"<a href='{html.escape(item.link, quote=True)}' target='_blank' rel='noopener noreferrer' "
+            "style='display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;"
+            "background:#111827;color:#fff;text-decoration:none;border-radius:8px;font-size:15px'>"
+            f"{html.escape(cta_label(item))}</a></li>"
+        )
+    curated_section = (
+        "<h2 style='font-size:18px;border-bottom:2px solid #111;padding-bottom:6px;margin-top:20px'>"
+        f"厳選（最大10件・重要度A/B）</h2>"
+        "<p style='color:#555;font-size:13px;margin:8px 0 12px'>"
+        "ストラテジスト視点で、意思決定や実務に効きやすいものだけ先に並べています。"
+        "</p>"
+        f"<ol style='padding-left:18px;margin:0'>{''.join(curated_rows) or '<li>該当なし</li>'}</ol>"
+        "<h2 style='font-size:18px;border-bottom:2px solid #111;padding-bottom:6px;margin-top:28px'>"
+        "網羅（全件）</h2>"
+    )
+
     grouped = group_by_category(items)
     sections: list[str] = []
     for category in CATEGORY_ORDER:
@@ -493,7 +570,7 @@ def render_html_digest(items: list[NewsItem], errors: list[str], now: datetime) 
             rows.append(
                 "<li style='margin:0 0 18px;padding-bottom:14px;border-bottom:1px solid #eee'>"
                 f"<div style='font-size:12px;color:#888;margin-bottom:4px'>"
-                f"{html.escape(item.source_name)} {access_badge}</div>"
+                f"{_priority_badge_html(item)}{html.escape(item.source_name)} {access_badge}</div>"
                 f"<div style='font-size:17px;font-weight:600;line-height:1.4;margin-bottom:2px'>"
                 f"{html.escape(item.title)}</div>"
                 f"{summary_html}"
@@ -534,9 +611,10 @@ def render_html_digest(items: list[NewsItem], errors: list[str], now: datetime) 
     <h1 style="font-size:22px;margin:0 0 8px">{html.escape(build_subject(now, len(items)))}</h1>
     <p style="color:#555;font-size:14px;line-height:1.5;margin:0 0 8px">
       無料で読める範囲（見出し・リード）中心です。有料本文は対象外です。
-      「無料記事を開く」は本文も読める想定、「公式ページを開く」は会員壁の場合があります。
+      上部の「厳選」は時短用、下部の「網羅」は漏れ確認用です。
     </p>
     {warning}
+    {curated_section}
     {''.join(sections)}
     {error_block}
   </div>
